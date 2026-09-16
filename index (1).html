@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Riacho Fundo II · Calor, água e cidade</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Archivo+Narrow:wght@500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#F7F4EE;          /* off-white quente */
+  --surface:#FFFFFF;     /* cartões */
+  --surface-2:#F0EBE1;   /* superfície alternativa */
+  --ink:#2A2620;         /* texto principal */
+  --ink-dim:#6E675B;     /* texto secundário */
+  --paper:#2A2620;       /* compat: agora = tinta escura */
+  --paper-dim:#6E675B;   /* compat */
+  --asphalt:#F7F4EE;     /* compat: fundo claro */
+  --asphalt-2:#FFFFFF;   /* compat: superfície clara */
+  --clay:#B4551F;        /* calor */
+  --clay-lite:#C4622D;
+  --agua:#2F6FA6;        /* água */
+  --agua-lite:#3E7CB1;
+  --canopy:#3E7A4C;      /* arborização */
+  --canopy-lite:#4E8D5B;
+  --amber:#C98A2B;       /* risco */
+  --line:#E4DED2;        /* bordas sólidas claras */
+  --line-soft:rgba(42,38,32,.10);
+  --shadow:0 1px 2px rgba(42,38,32,.05),0 8px 24px rgba(42,38,32,.07);
+  --maxw:1180px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font-family:"Newsreader",Georgia,serif;font-size:19px;line-height:1.66;
+  -webkit-font-smoothing:antialiased;overflow-x:hidden;
+}
+h1,h2,h3,.dsp{font-family:"Archivo",system-ui,sans-serif;line-height:1.02;letter-spacing:-.01em}
+.nar{font-family:"Archivo Narrow",system-ui,sans-serif}
+a{color:var(--clay)}
+img{max-width:100%}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+.small{font-size:14px;line-height:1.5}
+
+/* ---------- top bar ---------- */
+.topbar{position:fixed;top:0;left:0;right:0;z-index:60;display:flex;justify-content:space-between;
+  align-items:center;padding:14px 24px;background:linear-gradient(rgba(247,244,238,.9),rgba(247,244,238,0));
+  transition:background .3s,box-shadow .3s;pointer-events:none}
+.topbar.solid{background:rgba(247,244,238,.92);backdrop-filter:blur(8px);box-shadow:0 1px 0 var(--line);pointer-events:auto}
+.brand{font-family:"Archivo Narrow";font-weight:700;letter-spacing:.04em;font-size:15px;text-transform:uppercase;
+  display:flex;align-items:center;gap:10px;color:var(--ink)}
+.brand .dot{width:11px;height:11px;border-radius:50%;background:var(--clay);box-shadow:0 0 0 4px rgba(180,85,31,.18)}
+.progress{position:fixed;top:0;left:0;height:3px;background:linear-gradient(90deg,var(--agua),var(--canopy),var(--clay));width:0;z-index:70}
+
+/* ---------- hero ---------- */
+.hero{position:relative;min-height:100vh;display:flex;align-items:flex-end;overflow:hidden}
+#heroCanvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.hero-grad{position:absolute;inset:0;background:
+  radial-gradient(120% 80% at 78% 8%, rgba(201,138,43,.12), transparent 55%),
+  linear-gradient(to top, var(--bg) 3%, rgba(247,244,238,.72) 34%, rgba(247,244,238,.15) 100%)}
+.hero-inner{position:relative;z-index:3;padding-bottom:8vh;width:100%}
+.eyebrow{font-family:"Archivo Narrow";font-weight:600;letter-spacing:.02em;color:var(--clay);
+  font-size:16px;margin:0 0 14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.eyebrow .chip{border:1px solid var(--line);border-radius:999px;padding:3px 12px;color:var(--ink-dim);background:rgba(255,255,255,.6)}
+.hero h1{font-size:clamp(44px,8.6vw,116px);font-weight:800;margin:0 0 20px;max-width:16ch;color:var(--ink)}
+.hero h1 .hl{color:var(--clay)}
+.hero .lede{font-size:clamp(19px,2.3vw,25px);max-width:56ch;color:var(--ink);opacity:.9;margin:0 0 30px}
+.scrollcue{display:inline-flex;align-items:center;gap:12px;font-family:"Archivo Narrow";
+  font-weight:600;letter-spacing:.06em;text-transform:uppercase;font-size:13px;color:var(--ink-dim)}
+.scrollcue .arw{width:26px;height:26px;border:1px solid var(--line);border-radius:50%;
+  display:grid;place-items:center;animation:bob 1.8s ease-in-out infinite;background:rgba(255,255,255,.5)}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(5px)}}
+
+/* ---------- generic section ---------- */
+.section{padding:96px 0 72px;position:relative}
+.section-head{max-width:var(--maxw);margin:0 auto 46px;padding:0 24px}
+.kicker{font-family:"Archivo Narrow";font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  font-size:13px;color:var(--ink-dim);display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.kicker::before{content:"";width:26px;height:2px;background:var(--clay)}
+.section h2{font-size:clamp(30px,4.6vw,54px);font-weight:700;margin:0 0 14px;max-width:20ch;color:var(--ink)}
+.section .sub{font-size:19px;color:var(--ink-dim);max-width:60ch;margin:0}
+
+/* dimension tabs */
+.tabs{display:flex;gap:10px;flex-wrap:wrap;max-width:var(--maxw);margin:0 auto 30px;padding:0 24px}
+.tab{font-family:"Archivo Narrow";font-weight:600;font-size:16px;letter-spacing:.01em;
+  color:var(--ink-dim);background:var(--surface);border:1px solid var(--line);
+  border-radius:12px;padding:12px 18px 12px 16px;cursor:pointer;display:flex;gap:11px;align-items:center;
+  transition:.22s;line-height:1.15;text-align:left;box-shadow:var(--shadow)}
+.tab .ti{width:12px;height:12px;border-radius:3px;flex:0 0 auto}
+.tab small{display:block;color:var(--ink-dim);opacity:.75;font-weight:500;font-size:12.5px}
+.tab:hover{color:var(--ink);transform:translateY(-1px)}
+.tab.on{color:#fff;background:var(--ink);border-color:var(--ink)}
+.tab.on small{color:#cfc7b8}
+.tab[data-dim="ter"] .ti{background:var(--clay)}
+.tab[data-dim="inf"] .ti{background:var(--agua)}
+.tab[data-dim="amb"] .ti{background:var(--canopy)}
+
+/* panel */
+.panel{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+.dimwrap{display:grid;grid-template-columns:1.05fr 1.35fr;gap:30px;align-items:start}
+.dimtext h3{font-size:26px;font-weight:700;margin:0 0 8px;color:var(--ink)}
+.dimtext p{margin:0 0 18px;color:var(--ink);opacity:.9;max-width:46ch}
+.statgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:6px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 16px 15px;
+  position:relative;overflow:hidden;box-shadow:var(--shadow)}
+.stat .big{font-family:"Archivo";font-weight:800;font-size:34px;line-height:1;margin:0 0 4px}
+.stat .lab{font-family:"Archivo Narrow";font-size:14px;color:var(--ink-dim);line-height:1.3}
+.stat .bar{position:absolute;left:0;bottom:0;height:3px;width:100%}
+.stat[data-c="clay"] .bar{background:var(--clay)} .stat[data-c="clay"] .big{color:var(--clay)}
+.stat[data-c="agua"] .bar{background:var(--agua)} .stat[data-c="agua"] .big{color:var(--agua)}
+.stat[data-c="canopy"] .bar{background:var(--canopy)} .stat[data-c="canopy"] .big{color:var(--canopy)}
+.stat[data-c="amber"] .bar{background:var(--amber)} .stat[data-c="amber"] .big{color:#a9701e}
+.chartcard{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:22px 22px 16px;box-shadow:var(--shadow)}
+.chartcard .ct{font-family:"Archivo Narrow";font-weight:700;font-size:17px;margin:0 0 2px;color:var(--ink)}
+.chartcard .cs{font-size:13.5px;color:var(--ink-dim);margin:0 0 16px}
+.chartbox{position:relative;height:340px}
+.src{font-size:12px;color:var(--ink-dim);opacity:.8;margin-top:12px;font-family:"Archivo Narrow"}
+
+/* ---------- animation stage (scrollytelling) ---------- */
+.story{position:relative}
+.stage-sticky{position:sticky;top:0;height:100vh;display:flex;align-items:center;justify-content:center;
+  overflow:hidden;background:#dbe6ec}
+#simCanvas{width:100%;height:100%;display:block}
+.stage-cap{position:absolute;left:0;right:0;bottom:0;z-index:5;pointer-events:none;
+  background:linear-gradient(transparent,rgba(247,244,238,.6) 30%,rgba(247,244,238,.94) 60%)}
+.stage-cap .inner{max-width:var(--maxw);margin:0 auto;padding:0 24px 34px}
+.stage-cap .step-k{font-family:"Archivo Narrow";font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  font-size:13px;color:var(--clay);margin:0 0 6px;display:flex;gap:10px;align-items:center}
+.stage-cap .step-k .n{background:var(--clay);color:#fff;border-radius:6px;padding:1px 8px;font-size:12px}
+.stage-cap h3{font-family:"Archivo";font-weight:700;font-size:clamp(24px,3.4vw,38px);margin:0 0 8px;max-width:22ch;color:var(--ink)}
+.stage-cap p{margin:0;max-width:52ch;font-size:17.5px;color:var(--ink);opacity:.92}
+.stagemeter{position:absolute;top:22px;left:0;right:0;z-index:6;display:flex;justify-content:center;gap:8px;pointer-events:none}
+.stagemeter .seg{width:38px;height:4px;border-radius:3px;background:rgba(42,38,32,.2);transition:.3s}
+.stagemeter .seg.on{background:var(--clay)}
+.spacer{height:100vh}
+.legend-fixed{position:absolute;right:24px;top:54px;z-index:7;background:rgba(255,255,255,.94);
+  border:1px solid var(--line);border-radius:12px;padding:11px 13px;max-width:220px;
+  box-shadow:0 6px 20px rgba(42,38,32,.16);backdrop-filter:blur(6px);pointer-events:none}
+.legend-fixed .lg{display:flex;align-items:center;gap:8px;font-family:"Archivo Narrow";font-size:13px;
+  font-weight:600;margin:3px 0;color:var(--ink);white-space:nowrap}
+.legend-fixed .sw{width:13px;height:13px;border-radius:3px;flex:0 0 auto;
+  box-shadow:0 0 0 1px rgba(42,38,32,.2)}
+
+/* compare slider */
+.compare{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+.cmp-stage{position:relative;border-radius:20px;overflow:hidden;border:1px solid var(--line);
+  aspect-ratio:16/8;background:#dbe6ec;user-select:none;box-shadow:var(--shadow)}
+.cmp-canvas{position:absolute;inset:0;width:100%;height:100%}
+.cmp-top{clip-path:inset(0 0 0 50%)}
+.cmp-handle{position:absolute;top:0;bottom:0;left:50%;width:2px;background:#fff;z-index:4;cursor:ew-resize;box-shadow:0 0 0 1px rgba(42,38,32,.15)}
+.cmp-handle .grip{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:44px;height:44px;
+  border-radius:50%;background:#fff;color:var(--ink);display:grid;place-items:center;
+  box-shadow:0 6px 24px rgba(42,38,32,.3);font-family:"Archivo";font-weight:800}
+.cmp-tag{position:absolute;top:14px;z-index:5;font-family:"Archivo Narrow";font-weight:700;font-size:13px;
+  letter-spacing:.04em;text-transform:uppercase;padding:6px 12px;border-radius:999px;backdrop-filter:blur(4px)}
+.cmp-tag.l{left:14px;background:rgba(62,122,76,.92);color:#fff}
+.cmp-tag.r{right:14px;background:rgba(180,85,31,.94);color:#fff}
+
+/* risks */
+.risks{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;max-width:var(--maxw);margin:0 auto;padding:0 24px}
+.risk{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px 18px;position:relative;box-shadow:var(--shadow)}
+.risk .ic{width:42px;height:42px;border-radius:11px;display:grid;place-items:center;margin-bottom:14px;
+  background:rgba(201,138,43,.12);border:1px solid rgba(201,138,43,.32)}
+.risk h4{font-family:"Archivo";font-weight:700;font-size:19px;margin:0 0 7px;color:var(--ink)}
+.risk p{margin:0;font-size:15.5px;color:var(--ink-dim);line-height:1.55}
+.risk .tag{position:absolute;top:16px;right:16px;font-family:"Archivo Narrow";font-size:11.5px;font-weight:700;
+  letter-spacing:.03em;text-transform:uppercase;color:#a9701e}
+
+/* solutions */
+.sol{max-width:var(--maxw);margin:0 auto;padding:0 24px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.solcard{border-radius:16px;padding:22px 20px;border:1px solid var(--line);background:
+  linear-gradient(180deg,rgba(62,122,76,.09),var(--surface));box-shadow:var(--shadow)}
+.solcard h4{font-family:"Archivo";font-weight:700;font-size:20px;margin:0 0 8px;display:flex;gap:10px;align-items:center;color:var(--ink)}
+.solcard h4 .n{font-family:"Archivo";font-weight:800;color:var(--canopy);font-size:15px;
+  border:1px solid rgba(62,122,76,.4);border-radius:8px;padding:2px 8px}
+.solcard p{margin:0;font-size:15.5px;color:var(--ink-dim);line-height:1.55}
+
+/* narrative reading blocks */
+.read{max-width:720px;margin:0 auto;padding:0 24px}
+.read p{margin:0 0 20px}
+.pull{font-family:"Archivo";font-weight:600;font-size:clamp(23px,3.4vw,33px);line-height:1.18;
+  color:var(--ink);border-left:3px solid var(--clay);padding-left:22px;margin:34px 0}
+.ods{display:flex;gap:12px;flex-wrap:wrap;margin:22px 0 4px}
+.odsbadge{font-family:"Archivo Narrow";font-weight:700;font-size:14px;border-radius:10px;padding:8px 14px;
+  display:flex;gap:9px;align-items:center;color:#fff}
+.odsbadge.a13{background:#3E7A4C}
+.odsbadge.a11{background:#C98A2B}
+.odsbadge .num{font-family:"Archivo";font-weight:800;font-size:16px}
+
+/* footer / sources */
+footer{border-top:1px solid var(--line);margin-top:40px;padding:56px 0 70px;background:var(--surface-2)}
+.srcgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px 34px;max-width:var(--maxw);margin:18px auto 0;padding:0 24px}
+.srcgrid a{color:var(--ink-dim);font-family:"Archivo Narrow";font-size:14px;text-decoration:none;
+  border-bottom:1px solid transparent;padding:3px 0;display:block}
+.srcgrid a:hover{color:var(--clay);border-color:var(--line)}
+.foot-note{max-width:var(--maxw);margin:30px auto 0;padding:0 24px;color:var(--ink-dim);font-size:13.5px;font-family:"Archivo Narrow"}
+
+.reveal{opacity:0;transform:translateY(18px);transition:opacity .7s ease,transform .7s ease}
+.reveal.in{opacity:1;transform:none}
+
+@media(max-width:900px){
+  body{font-size:18px}
+  .dimwrap{grid-template-columns:1fr;gap:22px}
+  .risks{grid-template-columns:1fr 1fr}
+  .sol{grid-template-columns:1fr}
+  .statgrid{grid-template-columns:1fr 1fr}
+  .chartbox{height:300px}
+  .stage-cap p{font-size:16px}
+  .legend-fixed{display:none}
+}
+@media(max-width:560px){
+  .risks{grid-template-columns:1fr}
+  .tab{flex:1 1 100%}
+}
+@media(max-height:560px){
+  .legend-fixed{display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;scroll-behavior:auto!important}
+  .reveal{opacity:1;transform:none}
+}
+</style>
+</head>
+<body>
+<div class="progress" id="prog"></div>
+<div class="topbar" id="topbar">
+  <div class="brand"><span class="dot"></span>Riacho Fundo II · RA XXI</div>
+  <div class="brand small" style="opacity:.7">ODS 13 · Ação climática</div>
+</div>
+
+<!-- ============ HERO ============ -->
+<header class="hero">
+  <canvas id="heroCanvas"></canvas>
+  <div class="hero-grad"></div>
+  <div class="hero-inner">
+    <div class="wrap">
+      <p class="eyebrow">
+        <span>Distrito Federal · Brasil</span>
+        <span class="chip">Território de expansão urbana</span>
+        <span class="chip">Bacia do Córrego Riacho Fundo</span>
+      </p>
+      <h1>Quando a cidade <span class="hl">esquenta</span> e a água não tem para onde ir</h1>
+      <p class="lede">Uma leitura interativa do Riacho Fundo II: como a impermeabilização do solo e a baixa arborização transformam o calor e a chuva em risco para quem mora na periferia de Brasília.</p>
+      <span class="scrollcue"><span class="arw">↓</span> Role para explorar</span>
+    </div>
+  </div>
+</header>
+
+<!-- ============ INTRO READ ============ -->
+<section class="section" id="intro">
+  <div class="read reveal">
+    <p class="kicker">O território</p>
+    <p>O <strong>Riacho Fundo II</strong> é a Região Administrativa XXI do Distrito Federal, criada em 2003 a partir de uma ocupação iniciada em 1995, na luta por moradia. É uma cidade jovem, de renda média-baixa, em interface direta com a bacia hidrográfica do Córrego Riacho Fundo — e em plena expansão.</p>
+    <p>Esse crescimento acelerado tem um custo ambiental concreto: cada nova rua asfaltada e cada novo telhado substituem o solo que antes infiltrava a chuva. Ao mesmo tempo, a arborização não acompanha a expansão. O resultado aparece no cotidiano em duas formas — <strong>mais calor</strong> nos dias secos e <strong>mais água correndo pelas ruas</strong> nos dias de chuva.</p>
+    <div class="pull">A pergunta que guia esta pesquisa: de que maneira a baixa arborização e a impermeabilização do solo intensificam os impactos climáticos e o calor urbano no território?</div>
+    <div class="ods">
+      <span class="odsbadge a13"><span class="num">13</span> Ação contra a mudança global do clima</span>
+      <span class="odsbadge a11"><span class="num">11</span> Cidades e comunidades sustentáveis</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 1. CARACTERIZAÇÃO — DASHBOARD ============ -->
+<section class="section" id="dados">
+  <div class="section-head reveal">
+    <p class="kicker">Parte 1 · Diagnóstico</p>
+    <h2>Um retrato do território em três dimensões</h2>
+    <p class="sub">Selecione uma dimensão para ver os indicadores. Dados oficiais da PDAD-A 2024 (IPEDF Codeplan) e órgãos do DF.</p>
+  </div>
+
+  <div class="tabs" id="tabs" role="tablist">
+    <button class="tab on" data-dim="ter" role="tab"><span class="ti"></span><span>Caracterização territorial<small>População, renda e ocupação</small></span></button>
+    <button class="tab" data-dim="inf" role="tab"><span class="ti"></span><span>Infraestrutura<small>Saneamento, mobilidade, moradia</small></span></button>
+    <button class="tab" data-dim="amb" role="tab"><span class="ti"></span><span>Meio ambiente e sustentabilidade<small>Arborização, água, riscos</small></span></button>
+  </div>
+
+  <div class="panel">
+    <div class="dimwrap">
+      <div class="dimtext">
+        <h3 id="dimTitle">Caracterização territorial</h3>
+        <p id="dimDesc">Cidade jovem e populosa da periferia sudoeste do DF, marcada por renda média-baixa e forte vínculo com o Plano Piloto como destino de trabalho.</p>
+        <div class="statgrid" id="statGrid"></div>
+      </div>
+      <div class="chartcard">
+        <p class="ct" id="chartTitle">Distribuição da população por faixa etária</p>
+        <p class="cs" id="chartSub">Riacho Fundo II, área urbana, 2024</p>
+        <div class="chartbox"><canvas id="mainChart"></canvas></div>
+        <p class="src" id="chartSrc">Fonte: PDAD-A 2024 — IPEDF Codeplan</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 2. ANIMATION — SCROLLY HEAT/WATER ============ -->
+<section class="section" style="padding-bottom:24px">
+  <div class="section-head reveal">
+    <p class="kicker">Parte 2 · Simulação animada</p>
+    <h2>O que acontece quando o solo é selado</h2>
+    <p class="sub">Uma mesma quadra, do solo natural do Cerrado à cidade impermeabilizada. Role para acompanhar cada etapa — a animação reage ao seu scroll.</p>
+  </div>
+</section>
+
+<div class="story" id="story">
+  <div class="stage-sticky">
+    <canvas id="simCanvas"></canvas>
+    <div class="stagemeter" id="stagemeter"></div>
+    <div class="legend-fixed">
+      <div class="lg"><span class="sw" style="background:var(--canopy)"></span>Vegetação / sombra</div>
+      <div class="lg"><span class="sw" style="background:#6b5642"></span>Solo que infiltra</div>
+      <div class="lg"><span class="sw" style="background:#3a4048"></span>Asfalto / telhado</div>
+      <div class="lg"><span class="sw" style="background:var(--agua)"></span>Água da chuva</div>
+    </div>
+    <div class="stage-cap">
+      <div class="inner">
+        <p class="step-k"><span class="n" id="stepNum">01</span> <span id="stepKick">Ponto de partida</span></p>
+        <h3 id="stepTitle">Cerrado: o solo que respira</h3>
+        <p id="stepText">Antes da cidade, a vegetação nativa sombreia a superfície e as raízes abrem caminho para a água. A chuva infiltra, recarrega o lençol e alimenta as nascentes do córrego.</p>
+      </div>
+    </div>
+  </div>
+  <div class="spacer" data-step="0"></div>
+  <div class="spacer" data-step="1"></div>
+  <div class="spacer" data-step="2"></div>
+  <div class="spacer" data-step="3"></div>
+  <div class="spacer" data-step="4"></div>
+</div>
+
+<!-- ============ COMPARE SLIDER ============ -->
+<section class="section" id="compare">
+  <div class="section-head reveal">
+    <p class="kicker">Antes / depois</p>
+    <h2>Arraste e compare a mesma rua</h2>
+    <p class="sub">À esquerda, uma via arborizada. À direita, a mesma via sem cobertura vegetal, sob sol pleno. Arraste a alça para ver a diferença de sombra e temperatura da superfície.</p>
+  </div>
+  <div class="compare reveal">
+    <div class="cmp-stage" id="cmpStage">
+      <canvas class="cmp-canvas" id="cmpShade"></canvas>
+      <canvas class="cmp-canvas cmp-top" id="cmpBare"></canvas>
+      <span class="cmp-tag l">Com arborização</span>
+      <span class="cmp-tag r">Sem arborização</span>
+      <div class="cmp-handle" id="cmpHandle"><div class="grip">⇄</div></div>
+    </div>
+    <p class="src" style="text-align:center">Ilustração esquemática. O efeito de sombreamento e conforto térmico da arborização urbana é reconhecido pelo Inmet e pela Política Distrital de Arborização Urbana (PDAU / DF, 2025).</p>
+  </div>
+</section>
+
+<!-- ============ RISKS ============ -->
+<section class="section" id="riscos">
+  <div class="section-head reveal">
+    <p class="kicker">Consequências</p>
+    <h2>Os riscos que chegam à porta de casa</h2>
+    <p class="sub">Efeitos já documentados no Riacho Fundo II e na bacia do Córrego Riacho Fundo.</p>
+  </div>
+  <div class="risks" id="riskGrid"></div>
+</section>
+
+<!-- ============ SOLUTIONS ============ -->
+<section class="section" id="solucoes">
+  <div class="section-head reveal">
+    <p class="kicker">Caminhos de adaptação</p>
+    <h2>O que devolve permeabilidade e sombra à cidade</h2>
+    <p class="sub">Medidas apontadas por estudos técnicos e pela política pública do DF, alinhadas às metas 13.1, 13.2 e 13.3 da ODS 13.</p>
+  </div>
+  <div class="sol reveal">
+    <div class="solcard"><h4><span class="n">01</span> Arborização urbana</h4><p>Ampliar a cobertura vegetal reduz a temperatura da superfície, cria sombra em pontos de ônibus e calçadas e melhora o conforto térmico. A PDAU (lei distrital de 2025) exige, no mínimo, 15 m² de área verde e uma árvore por habitante em cada RA.</p></div>
+    <div class="solcard"><h4><span class="n">02</span> Drenagem e bacias de detenção</h4><p>Bacias de detenção ("piscinões") e pavimentos permeáveis retêm e infiltram a água da chuva, aliviando bocas de lobo subdimensionadas e reduzindo enxurradas e assoreamento do córrego.</p></div>
+    <div class="solcard"><h4><span class="n">03</span> Educação ambiental e mobilização</h4><p>Descarte correto de entulho e resíduos evita o entupimento da rede pluvial. A rede comunitária ativa — associações, escolas e o CRAS — pode sustentar campanhas de conscientização e adaptação local.</p></div>
+  </div>
+</section>
+
+<!-- ============ CLOSING READ ============ -->
+<section class="section" id="fecho">
+  <div class="read reveal">
+    <p class="kicker">Em síntese</p>
+    <p>A impermeabilização e a baixa arborização não são apenas questões estéticas: são fatores que <strong>amplificam</strong> os extremos climáticos sobre uma população já vulnerável. O calor fica mais intenso, a chuva vira enxurrada, e o córrego recebe o que a cidade não conseguiu absorver.</p>
+    <p>Mas o mesmo território que concentra os riscos guarda as soluções — parques ecológicos, uma rede comunitária ativa, articulação com órgãos ambientais e uma política distrital de arborização recém-aprovada. Adaptar o Riacho Fundo II é, no fim, devolver ao solo a capacidade de respirar e infiltrar.</p>
+    <div class="pull">Uma cidade mais permeável e mais sombreada é uma cidade mais preparada para o clima que já chegou.</div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p class="kicker">Fontes e validação</p>
+    <p class="small" style="max-width:70ch;color:var(--paper-dim)">Todos os indicadores foram verificados em fontes oficiais e reportagens recentes (2024–2026). Os dados socioeconômicos e de infraestrutura vêm da edição mais recente da pesquisa distrital (PDAD-A 2024, IPEDF Codeplan).</p>
+  </div>
+  <div class="srcgrid">
+    <a href="https://pdad.ipe.df.gov.br/files/reports/21_-_RIACHO_FUNDO_II.pdf" target="_blank" rel="noopener">PDAD-A 2024 · Riacho Fundo II — IPEDF Codeplan (dados demográficos, infraestrutura, saneamento)</a>
+    <a href="https://www.cl.df.gov.br/-/aprovada-politica-de-arborizacao-urbana-para-combater-desigualdades-ambientais-no-df" target="_blank" rel="noopener">CLDF — Política Distrital de Arborização Urbana (PDAU)</a>
+    <a href="https://www.brasildefato.com.br/2026/07/20/poluicao-e-crimes-ambientais-ameacam-corregos-e-rios-do-distrito-federal/" target="_blank" rel="noopener">Brasil de Fato (2026) — Poluição e assoreamento de córregos do DF</a>
+    <a href="https://www.metropoles.com/distrito-federal/projeto-que-preve-numero-igual-de-arvores-em-todo-o-df-e-aprovado" target="_blank" rel="noopener">Metrópoles (2025) — Desigualdade de arborização no DF (7.841 árvores)</a>
+    <a href="https://jornaldebrasilia.com.br/brasilia/mutirao-atua-para-amenizar-os-impactos-da-chuva-no-riacho-fundo-ii/" target="_blank" rel="noopener">Jornal de Brasília (2025) — Mutirão após chuva no Riacho Fundo II</a>
+    <a href="https://www.brasildefato.com.br/2025/12/04/politica-de-arborizacao-urbana-vira-lei-no-df-apos-camara-derrubar-veto-de-ibaneis/" target="_blank" rel="noopener">Brasil de Fato (2025) — PDAU vira lei no DF</a>
+    <a href="https://www.adasa.df.gov.br/images/storage/area_de_atuacao/drenagem_urbana/regula%C3%A7%C3%A3o/Manual_de_drenagem_e_manejo_de_aguas_urbanas/Manual_Drenagem_Adasa_Digital.pdf" target="_blank" rel="noopener">Manual de Drenagem e Manejo de Águas Pluviais — Adasa/DF</a>
+    <a href="https://www.ibram.df.gov.br/" target="_blank" rel="noopener">Plano de Adaptação às Mudanças Climáticas do DF (consulta pública, 2021)</a>
+  </div>
+  <p class="foot-note">Pesquisa acadêmica · ODS 13 e ODS 11 · Recorte: Região Administrativa XXI (Riacho Fundo II) e a bacia do Córrego Riacho Fundo. Construído a partir do levantamento do grupo e de validação em fontes oficiais.</p>
+</footer>
+
+<script>
+/* =========================================================
+   Riacho Fundo II — interactive report
+   Data verified against PDAD-A 2024 (IPEDF Codeplan) + recent press
+   ========================================================= */
+'use strict';
+const PALETTE = {
+  paper:'#2A2620', dim:'#6E675B', clay:'#B4551F', clayL:'#C4622D',
+  agua:'#2F6FA6', aguaL:'#3E7CB1', canopy:'#3E7A4C', canopyL:'#4E8D5B',
+  amber:'#C98A2B', grid:'rgba(42,38,32,.10)'
+};
+const reduceMotion = window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+
+/* ---------- progress bar + sticky topbar ---------- */
+(function(){
+  const prog=document.getElementById('prog'), bar=document.getElementById('topbar');
+  const onScroll=()=>{
+    const h=document.documentElement.scrollHeight-innerHeight;
+    prog.style.width=(scrollY/h*100)+'%';
+    bar.classList.toggle('solid', scrollY>60);
+  };
+  addEventListener('scroll',onScroll,{passive:true}); onScroll();
+})();
+
+/* ---------- reveal on scroll ---------- */
+(function(){
+  const io=new IntersectionObserver((es)=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}}),{threshold:.16});
+  document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+})();
+
+/* =========================================================
+   PART 1 — DASHBOARD (three dimensions)
+   All figures: PDAD-A 2024 Riacho Fundo II unless noted.
+   ========================================================= */
+const DIM = {
+  ter:{
+    color:PALETTE.clay,
+    title:'Caracterização territorial',
+    desc:'Cidade jovem e populosa da periferia sudoeste do DF (RA XXI), de renda média-baixa. A maioria dos moradores nasceu no próprio DF e trabalha, sobretudo, no Plano Piloto — perfil de "cidade-dormitório".',
+    stats:[
+      {big:'70.180',lab:'moradores na área urbana (2024)',c:'clay'},
+      {big:'32,2',lab:'anos — idade média da população',c:'clay'},
+      {big:'29,1%',lab:'trabalham no Plano Piloto',c:'clay'},
+      {big:'63,9%',lab:'nasceram no Distrito Federal',c:'clay'}
+    ],
+    chart:{
+      title:'Perfil socioeconômico da população',
+      sub:'Riacho Fundo II · 2024 — indicadores selecionados',
+      src:'Fonte: PDAD-A 2024 — IPEDF Codeplan',
+      type:'bar',
+      horizontal:true,
+      data:{
+        labels:['Nasceram no Distrito Federal','População em idade ativa (14+) ocupada ou buscando','Trabalham no Plano Piloto','Taxa de desocupação (14+)'],
+        datasets:[{label:'%',data:[63.9,70.3,29.1,12.1],
+          backgroundColor:[PALETTE.clay,PALETTE.clayL,'#b0703a','#8a5a3a'],borderRadius:6,barPercentage:.72}]
+      },
+      opts:{x:{suffix:'%',max:80}}
+    }
+  },
+  inf:{
+    color:PALETTE.agua,
+    title:'Infraestrutura',
+    desc:'Saneamento com cobertura elevada e vias quase totalmente asfaltadas. Ainda assim, o transporte depende fortemente do ônibus e problemas urbanos nas cercanias — entulho e ruas alagadas — persistem em parcela expressiva dos domicílios.',
+    stats:[
+      {big:'99,3%',lab:'domicílios com água tratada (CAESB)',c:'agua'},
+      {big:'94,8%',lab:'com esgoto ligado à rede geral',c:'agua'},
+      {big:'99%',lab:'com coleta direta de lixo',c:'agua'},
+      {big:'91,5%',lab:'têm boca de lobo na via principal',c:'agua'}
+    ],
+    chart:{
+      title:'Infraestrutura nas proximidades do domicílio',
+      sub:'% de domicílios que relatam a existência · 2024',
+      src:'Fonte: PDAD-A 2024 — IPEDF Codeplan',
+      type:'bar',
+      horizontal:true,
+      data:{
+        labels:['Via asfaltada','Calçada','Iluminação','Ponto de ônibus','Boca de lobo (drenagem)','Ruas arborizadas'],
+        datasets:[{label:'% domicílios',data:[98.5,94.5,93.3,91.8,91.5,85.5],
+          backgroundColor:[PALETTE.agua,PALETTE.agua,PALETTE.agua,PALETTE.agua,PALETTE.aguaL,PALETTE.canopy],
+          borderRadius:6,barPercentage:.78}]
+      },
+      opts:{x:{suffix:'%',max:100}}
+    }
+  },
+  amb:{
+    color:PALETTE.canopy,
+    title:'Meio ambiente e sustentabilidade',
+    desc:'É aqui que o território mostra sua fragilidade. Apesar de boa parte dos moradores relatar ruas arborizadas, a expansão não é acompanhada de novos plantios: entre 2023 e 2024, a RA do Riacho Fundo não recebeu nenhuma árvore da Novacap, enquanto o Plano Piloto recebeu 7.841. Descarte de entulho e alagamentos completam o quadro de risco.',
+    stats:[
+      {big:'0',lab:'árvores plantadas pela Novacap no Riacho Fundo em 2023–2024',c:'amber'},
+      {big:'7.841',lab:'árvores no Plano Piloto no mesmo período',c:'canopy'},
+      {big:'56,4%',lab:'domicílios relatam descarte irregular de entulho',c:'amber'},
+      {big:'28,7%',lab:'relatam ruas alagadas em dias de chuva',c:'amber'}
+    ],
+    chart:{
+      title:'Problemas ambientais nas cercanias do domicílio',
+      sub:'% de domicílios que relatam o problema · Riacho Fundo II · 2024',
+      src:'Fonte: PDAD-A 2024 — IPEDF Codeplan',
+      type:'bar',
+      horizontal:true,
+      data:{
+        labels:['Descarte irregular de entulho','Ruas alagadas na chuva','Esgoto a céu aberto'],
+        datasets:[{label:'% domicílios',data:[56.4,28.7,13.7],
+          backgroundColor:[PALETTE.amber,PALETTE.agua,PALETTE.clay],borderRadius:6,barPercentage:.6}]
+      },
+      opts:{x:{suffix:'%',max:60}}
+    }
+  }
+};
+
+let chart;
+function buildStats(dim){
+  const g=document.getElementById('statGrid'); g.innerHTML='';
+  dim.stats.forEach(s=>{
+    const el=document.createElement('div');
+    el.className='stat'; el.dataset.c=s.c;
+    el.innerHTML=`<p class="big">${s.big}</p><p class="lab">${s.lab}</p><span class="bar"></span>`;
+    g.appendChild(el);
+  });
+}
+function chartOptions(cfg){
+  const horiz=cfg.horizontal;
+  const axSuffix=(cfg.opts&&(cfg.opts.y||cfg.opts.x))||{};
+  const o={
+    responsive:true,maintainAspectRatio:false,
+    indexAxis:horiz?'y':'x',
+    animation:reduceMotion?false:{duration:650,easing:'easeOutQuart'},
+    plugins:{legend:{display:false},
+      tooltip:{backgroundColor:'#2A2620',borderColor:'rgba(42,38,32,.2)',borderWidth:1,
+        titleColor:'#FFFFFF',bodyColor:'#E4DED2',padding:10,
+        callbacks:{label:(c)=>` ${c.formattedValue}%`}}},
+    scales:{
+      x:{grid:{color:PALETTE.grid,drawBorder:false},ticks:{color:PALETTE.dim,font:{family:'Archivo Narrow',size:12.5},
+          callback:function(v){return horiz?v+'%':this.getLabelForValue(v);}},
+          max:(cfg.opts&&cfg.opts.x&&cfg.opts.x.max)||undefined,border:{display:false}},
+      y:{grid:{color:PALETTE.grid,drawBorder:false},ticks:{color:PALETTE.dim,font:{family:'Archivo Narrow',size:12.5},
+          callback:function(v){return horiz?this.getLabelForValue(v):(v+'%');}},
+          max:(cfg.opts&&cfg.opts.y&&cfg.opts.y.max)||undefined,border:{display:false}}
+    }
+  };
+  return o;
+}
+function renderDim(key){
+  const dim=DIM[key];
+  document.getElementById('dimTitle').textContent=dim.title;
+  document.getElementById('dimDesc').textContent=dim.desc;
+  document.getElementById('chartTitle').textContent=dim.chart.title;
+  document.getElementById('chartSub').textContent=dim.chart.sub;
+  document.getElementById('chartSrc').textContent=dim.chart.src;
+  buildStats(dim);
+  if(chart)chart.destroy();
+  chart=new Chart(document.getElementById('mainChart'),{
+    type:dim.chart.type,data:dim.chart.data,options:chartOptions(dim.chart)
+  });
+}
+document.querySelectorAll('#tabs .tab').forEach(t=>{
+  t.addEventListener('click',()=>{
+    document.querySelectorAll('#tabs .tab').forEach(x=>x.classList.remove('on'));
+    t.classList.add('on'); renderDim(t.dataset.dim);
+  });
+});
+renderDim('ter');
+
+/* =========================================================
+   RISK CARDS
+   ========================================================= */
+const RISKS=[
+  {t:'Alagamentos e enxurradas',tag:'Água',d:'Com o solo selado, a chuva corre pelas avenidas em vez de infiltrar. Bocas de lobo subdimensionadas transbordam, invadem casas e danificam vias — como no temporal de nov/2025, que exigiu mutirão da Administração Regional e da Novacap.'},
+  {t:'Assoreamento do córrego',tag:'Bacia',d:'A enxurrada urbana leva areia, entulho e lixo para o Córrego Riacho Fundo. O acúmulo de sedimentos reduz o leito, deixa o curso d\'água mais raso e propenso a transbordar.'},
+  {t:'Poluição hídrica',tag:'Água',d:'A chuva "lava" ruas impermeabilizadas e arrasta óleo, resíduos e esgoto para a bacia. O Córrego Riacho Fundo está entre os corpos d\'água mais degradados do DF por esgoto e assoreamento.'},
+  {t:'Ilhas de calor',tag:'Calor',d:'Sem sombra e com superfícies escuras, a cidade retém calor. A ausência de novos plantios agrava o desconforto térmico — sentido, por exemplo, em pontos de ônibus sem abrigo nem arborização.'}
+];
+(function(){
+  const g=document.getElementById('riskGrid');
+  RISKS.forEach(r=>{
+    const el=document.createElement('div'); el.className='risk';
+    el.innerHTML=`<span class="tag">${r.tag}</span><div class="ic">⚠️</div><h4>${r.t}</h4><p>${r.d}</p>`;
+    g.appendChild(el);
+  });
+})();
+
+/* =========================================================
+   HERO CANVAS — heat shimmer over a skyline silhouette
+   ========================================================= */
+(function(){
+  const c=document.getElementById('heroCanvas'), x=c.getContext('2d');
+  let w,h,t=0,DPR=Math.min(devicePixelRatio||1,2);
+  function size(){w=c.width=innerWidth*DPR;h=c.height=c.offsetHeight*DPR;}
+  size(); addEventListener('resize',size);
+  // pre-generate buildings
+  let blds=[];
+  function gen(){blds=[];let bx=0;while(bx<innerWidth+60){const bw=28+Math.random()*46;const bh=60+Math.random()*190;
+    blds.push({x:bx,w:bw,h:bh,win:Math.random()});bx+=bw+4+Math.random()*10;}}
+  gen(); addEventListener('resize',gen);
+  function draw(){
+    x.clearRect(0,0,w,h);
+    // light warm sky gradient
+    const g=x.createLinearGradient(0,0,0,h);
+    g.addColorStop(0,'#e9dcc7'); g.addColorStop(.5,'#f2e9db'); g.addColorStop(1,'#F7F4EE');
+    x.fillStyle=g; x.fillRect(0,0,w,h);
+    // soft sun glow
+    const sx=w*.8, sy=h*.24, r=Math.min(w,h)*.55;
+    const sg=x.createRadialGradient(sx,sy,0,sx,sy,r);
+    sg.addColorStop(0,'rgba(240,190,120,.55)'); sg.addColorStop(.4,'rgba(224,164,90,.16)'); sg.addColorStop(1,'rgba(224,164,90,0)');
+    x.fillStyle=sg; x.fillRect(0,0,w,h);
+    // subtle heat shimmer lines
+    if(!reduceMotion){
+      x.save(); x.globalAlpha=.08; x.strokeStyle=PALETTE.clay; x.lineWidth=1*DPR;
+      for(let i=0;i<7;i++){const yy=(h*.30)+i*10*DPR;x.beginPath();
+        for(let px=0;px<=w;px+=8*DPR){const off=Math.sin(px*.012+t*.05+i)*4*DPR;x.lineTo(px,yy+off);}x.stroke();}
+      x.restore();
+    }
+    // skyline as soft muted silhouette
+    const base=h;
+    blds.forEach(b=>{
+      const bx=b.x*DPR, bw=b.w*DPR, bh=b.h*DPR;
+      x.fillStyle='rgba(160,146,126,.55)'; x.fillRect(bx,base-bh,bw,bh);
+      // windows as warm dots
+      x.fillStyle='rgba(180,85,31,.30)';
+      for(let wy=base-bh+10*DPR;wy<base-8*DPR;wy+=12*DPR)
+        for(let wx=bx+5*DPR;wx<bx+bw-6*DPR;wx+=11*DPR)
+          if(((wx+wy+b.win*97)|0)%3===0) x.fillRect(wx,wy,4*DPR,5*DPR);
+    });
+    t++; requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+/* =========================================================
+   PART 2 — SCROLL-DRIVEN SIMULATION  (the "video interativo")
+   5 steps: Cerrado -> occupation -> sealed city -> dry heat -> rain runoff
+   Progress p in [0,1] drives a continuous scene.
+   ========================================================= */
+const STEPS=[
+  {k:'Ponto de partida',t:'Cerrado: o solo que respira',
+   d:'Antes da cidade, a vegetação nativa sombreia a superfície e as raízes abrem caminho para a água. A chuva infiltra, recarrega o lençol e alimenta as nascentes do córrego.'},
+  {k:'Expansão urbana',t:'Chega a cidade — e o solo some',
+   d:'Ruas, telhados e calçadas substituem o solo natural. A cada nova quadra, menos superfície permeável e menos árvores para dar sombra.'},
+  {k:'Solo selado',t:'Uma superfície que não infiltra mais',
+   d:'Com o solo impermeabilizado, a água da chuva perde o caminho para baixo. Tudo o que cai precisa correr por cima — na direção das bocas de lobo e do córrego.'},
+  {k:'Dias secos',t:'Sem sombra, a cidade vira uma ilha de calor',
+   d:'No período seco, as superfícies escuras absorvem e devolvem calor. Sem arborização, a temperatura da superfície sobe e o desconforto térmico se concentra sobre quem está na rua.'},
+  {k:'Dias de chuva',t:'A enxurrada que a cidade não absorve',
+   d:'Quando chove forte, a água escoa em volume e velocidade. Bocas de lobo subdimensionadas transbordam: alagam ruas, arrastam entulho e levam sedimentos e poluição direto para o Córrego Riacho Fundo.'}
+];
+
+/* build meter segments */
+(function(){const m=document.getElementById('stagemeter');STEPS.forEach((_,i)=>{const s=document.createElement('span');s.className='seg';m.appendChild(s);});})();
+
+(function(){
+  const canvas=document.getElementById('simCanvas'), ctx=canvas.getContext('2d');
+  const story=document.getElementById('story');
+  let W,H,DPR=Math.min(devicePixelRatio||1,2), prog=0, target=0, rainT=0, heatT=0;
+  const stepNum=document.getElementById('stepNum'),stepKick=document.getElementById('stepKick'),
+        stepTitle=document.getElementById('stepTitle'),stepText=document.getElementById('stepText'),
+        segs=document.querySelectorAll('#stagemeter .seg');
+  let curStep=-1;
+
+  function size(){W=canvas.width=canvas.offsetWidth*DPR;H=canvas.height=canvas.offsetHeight*DPR;}
+  size(); addEventListener('resize',size);
+
+  // persistent randomized trees & buildings so scene is stable
+  const trees=[]; for(let i=0;i<7;i++)trees.push({x:.08+i*.13+Math.random()*.02,s:.85+Math.random()*.4});
+  const blds=[]; for(let i=0;i<6;i++)blds.push({x:.06+i*.155,w:.10+Math.random()*.03,h:.22+Math.random()*.20,win:Math.random()});
+  const drops=[]; for(let i=0;i<150;i++)drops.push({x:Math.random(),y:Math.random(),sp:.4+Math.random()*.7,len:.02+Math.random()*.03});
+
+  function lerp(a,b,t){return a+(b-a)*t;}
+  function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
+
+  // update which text step is active based on prog
+  function updateStep(){
+    const pv=isFinite(prog)?prog:0;
+    const idx=clamp(Math.round(pv*(STEPS.length-1)),0,STEPS.length-1);
+    if(idx!==curStep){
+      curStep=idx;const s=STEPS[idx];
+      stepNum.textContent=String(idx+1).padStart(2,'0');
+      stepKick.textContent=s.k; stepTitle.textContent=s.t; stepText.textContent=s.d;
+      segs.forEach((sg,i)=>sg.classList.toggle('on',i<=idx));
+    }
+  }
+
+  function draw(){
+    // ease prog toward target
+    prog=reduceMotion?target:lerp(prog,target,.12);
+    updateStep();
+    ctx.clearRect(0,0,W,H);
+    const p=prog;
+    const ground=H*0.72;           // ground line
+    const seal=clamp((p-0.15)/0.35,0,1);   // 0..1 how sealed/urbanized
+    const heat=clamp((p-0.55)/0.20,0,1);   // dry-heat intensity
+    const rain=clamp((p-0.78)/0.22,0,1);   // rain intensity
+
+    /* --- sky --- */
+    const sky=ctx.createLinearGradient(0,0,0,ground);
+    if(rain>0.02){
+      sky.addColorStop(0,mix('#26303a','#171d24',rain)); sky.addColorStop(1,mix('#33414d','#20272f',rain));
+    }else{
+      // cerrado blue -> hot ochre as heat rises
+      sky.addColorStop(0,mix('#3d5a73', '#7a4a2c', heat));
+      sky.addColorStop(1,mix('#88a7b8', '#c98b52', heat));
+    }
+    ctx.fillStyle=sky; ctx.fillRect(0,0,W,ground);
+
+    /* sun (grows/reddens with heat, hidden by rain clouds) */
+    if(rain<0.5){
+      const sx=W*0.80,sy=H*0.20,r=H*(0.10+heat*0.09)*(1-rain);
+      const sg=ctx.createRadialGradient(sx,sy,0,sx,sy,r*2.4);
+      sg.addColorStop(0,`rgba(255,${210-heat*90},${150-heat*80},${(0.9-rain)})`);
+      sg.addColorStop(1,'rgba(255,180,120,0)');
+      ctx.fillStyle=sg; ctx.beginPath(); ctx.arc(sx,sy,r*2.4,0,7); ctx.fill();
+      ctx.fillStyle=`rgba(255,${226-heat*70},${170-heat*70},${0.95-rain})`;
+      ctx.beginPath(); ctx.arc(sx,sy,r,0,7); ctx.fill();
+    }
+    /* rain clouds */
+    if(rain>0.02){
+      ctx.fillStyle=`rgba(30,37,45,${rain})`;
+      const cr=H*0.006;
+      for(let i=0;i<5;i++){const cx=W*(0.12+i*0.2);cloud(ctx,cx,H*0.13,cr,rain);}
+    }
+
+    /* --- underground (soil cross-section) --- */
+    ctx.fillStyle='#3a2c20'; ctx.fillRect(0,ground,W,H-ground);
+    // moisture / infiltration in permeable fraction
+    const perm=1-seal;
+    // draecrease infiltration as sealed rises: draw damp gradient on permeable-left portion
+    const soilGrad=ctx.createLinearGradient(0,ground,0,H);
+    soilGrad.addColorStop(0,'#4a3826'); soilGrad.addColorStop(1,mix('#5a4a2e','#2c2117',seal));
+    ctx.fillStyle=soilGrad; ctx.fillRect(0,ground,W,H-ground);
+
+    /* --- ground surface: split permeable soil (left) vs asphalt (spreads from right) --- */
+    const sealX=W*(1-seal);   // asphalt covers from sealX to right
+    // permeable natural ground
+    ctx.fillStyle=mix('#6b5642','#5f4d3a',heat*0.3);
+    ctx.fillRect(0,ground,sealX,H*0.02);
+    // grass tufts on permeable part (fade with heat)
+    if(sealX>4){
+      ctx.strokeStyle=mix('#5f8a4a','#8a7a3a',heat); ctx.lineWidth=1.4*DPR; ctx.globalAlpha=perm*(1-heat*0.5);
+      for(let gx=8;gx<sealX-4;gx+=14*DPR){ctx.beginPath();ctx.moveTo(gx,ground);ctx.lineTo(gx-2*DPR,ground-6*DPR);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(gx+3*DPR,ground);ctx.lineTo(gx+5*DPR,ground-7*DPR);ctx.stroke();}
+      ctx.globalAlpha=1;
+    }
+    // asphalt slab
+    if(seal>0.01){
+      const ag=ctx.createLinearGradient(0,ground-2,0,ground+H*0.03);
+      ag.addColorStop(0,mix('#3a4048','#4a3436',heat)); ag.addColorStop(1,'#23282e');
+      ctx.fillStyle=ag; ctx.fillRect(sealX,ground-2,W-sealX,H*0.03);
+      // road dashes
+      ctx.fillStyle='rgba(224,164,59,.5)';
+      for(let dx=sealX+20*DPR;dx<W-10*DPR;dx+=46*DPR)ctx.fillRect(dx,ground+H*0.012,22*DPR,3*DPR);
+    }
+
+    /* --- buildings rising with seal --- */
+    blds.forEach((b,i)=>{
+      const appear=clamp((seal-i*0.06)/0.4,0,1); if(appear<=0)return;
+      const bw=b.w*W, bh=b.h*H*appear, bx=(0.30+ b.x)*W*0.62 + sealX*0.2;
+      const yy=ground-bh;
+      ctx.fillStyle=mix('#1a2028','#241a1a',heat*0.4); ctx.fillRect(bx,yy,bw,bh);
+      ctx.fillStyle=`rgba(224,164,59,${0.35+heat*0.25})`;
+      for(let wy=yy+8*DPR;wy<ground-8*DPR;wy+=13*DPR)
+        for(let wx=bx+5*DPR;wx<bx+bw-6*DPR;wx+=12*DPR)
+          if(((wx+wy+b.win*53)|0)%3===0)ctx.fillRect(wx,wy,4*DPR,5*DPR);
+    });
+
+    /* --- trees: many at start, removed as seal rises --- */
+    trees.forEach((tr,i)=>{
+      const alive=clamp((perm - i*0.02)*1.4,0,1); if(alive<=0.02)return;
+      const tx=tr.x*W, scale=tr.s*(0.9)*alive;
+      drawTree(ctx,tx,ground,scale*H*0.14, heat, alive);
+      // shade patch under tree (cooling) — only when not raining
+      if(rain<0.3){
+        ctx.fillStyle=`rgba(40,70,45,${0.28*alive*(1-heat*0.4)})`;
+        ctx.beginPath(); ctx.ellipse(tx,ground+3*DPR,scale*H*0.11,H*0.012,0,0,7); ctx.fill();
+      }
+    });
+
+    /* --- heat waves rising from asphalt (dry step) --- */
+    if(heat>0.05 && rain<0.2 && !reduceMotion){
+      heatT+=0.03;
+      ctx.save(); ctx.globalAlpha=heat*0.5; ctx.strokeStyle=PALETTE.clayL; ctx.lineWidth=1.4*DPR;
+      for(let hx=sealX+30*DPR;hx<W-20*DPR;hx+=52*DPR){
+        ctx.beginPath();
+        for(let hy=ground-4*DPR;hy>ground-H*0.16;hy-=6*DPR){
+          const off=Math.sin(hy*0.05+heatT+hx)*4*DPR*heat;
+          ctx.lineTo(hx+off,hy);
+        } ctx.stroke();
+      } ctx.restore();
+      // heat "thermometer" glow band on asphalt
+      ctx.fillStyle=`rgba(224,80,45,${heat*0.14})`; ctx.fillRect(sealX,ground-2,W-sealX,H*0.03);
+    }
+
+    /* --- RAIN + runoff (wet step) --- */
+    if(rain>0.02){
+      rainT+=0.02;
+      // falling drops
+      ctx.strokeStyle=`rgba(150,190,220,${0.5*rain})`; ctx.lineWidth=1.6*DPR;
+      drops.forEach(d=>{
+        const y=((d.y+ rainT*d.sp)%1)*ground;
+        const dx=d.x*W;
+        ctx.beginPath(); ctx.moveTo(dx,y); ctx.lineTo(dx-3*DPR,y+d.len*H); ctx.stroke();
+      });
+      // infiltration on permeable part (arrows down) vs runoff on sealed (flow to lobo)
+      // permeable infiltration
+      if(sealX>10){
+        ctx.fillStyle=`rgba(80,140,180,${0.5*rain*perm})`;
+        for(let ix=14*DPR;ix<sealX-8*DPR;ix+=30*DPR){
+          const yy=ground+ (6+ (Math.sin(rainT*2+ix)*3+4))*DPR;
+          arrow(ctx,ix,ground+4*DPR,ix,yy+10*DPR,3*DPR);
+        }
+      }
+      // runoff sheet flowing right on asphalt toward boca de lobo
+      const pond=rain*seal;
+      const waterLevel=ground - pond*H*0.05*Math.min(1,seal);
+      const wg=ctx.createLinearGradient(0,waterLevel,0,ground+H*0.03);
+      wg.addColorStop(0,`rgba(90,150,190,${0.55*pond})`); wg.addColorStop(1,`rgba(50,110,160,${0.75*pond})`);
+      ctx.fillStyle=wg;
+      // water pools over the sealed portion, deeper toward the drain (right)
+      ctx.beginPath();
+      ctx.moveTo(sealX,ground);
+      for(let px=sealX;px<=W;px+=6*DPR){
+        const depth=pond*H*0.05*((px-sealX)/(W-sealX+1));
+        const wob=Math.sin(px*0.03+rainT*3)*1.5*DPR*pond;
+        ctx.lineTo(px,ground-depth+wob);
+      }
+      ctx.lineTo(W,ground+H*0.03); ctx.lineTo(sealX,ground+H*0.03); ctx.closePath(); ctx.fill();
+      // flow streaks
+      ctx.strokeStyle=`rgba(200,225,240,${0.4*pond})`; ctx.lineWidth=1.4*DPR;
+      for(let s=0;s<6;s++){const sy=ground-2*DPR - s*3*DPR*pond;ctx.beginPath();
+        for(let px=sealX;px<W;px+=10*DPR){ctx.lineTo(px, sy+Math.sin(px*0.04+rainT*4+s)*2*DPR);}ctx.stroke();}
+
+      // boca de lobo at far right + overflow when heavy
+      const lx=W-24*DPR;
+      ctx.fillStyle='#11151a'; ctx.fillRect(lx,ground-3*DPR,20*DPR,7*DPR);
+      if(pond>0.6){ // overflow splash
+        ctx.fillStyle=`rgba(120,170,205,${(pond-0.6)})`;
+        for(let s=0;s<10;s++){const a=Math.random()*Math.PI;const rr=(6+Math.random()*16)*DPR*pond;
+          ctx.beginPath();ctx.arc(lx+10*DPR-Math.cos(a)*rr,ground-2*DPR-Math.sin(a)*rr,1.6*DPR,0,7);ctx.fill();}
+      }
+      // sediment/pollution being carried (brown specks)
+      ctx.fillStyle=`rgba(120,86,50,${0.6*pond})`;
+      for(let s=0;s<18;s++){const px=sealX+((s*53+rainT*260)% (W-sealX));ctx.fillRect(px,ground-1*DPR,3*DPR,2*DPR);}
+    }
+
+    if(!reduceMotion)requestAnimationFrame(draw);
+  }
+
+  /* helpers */
+  function drawTree(c,x,gy,size,heat,alive){
+    const trunkH=size*0.5, trunkW=size*0.14;
+    c.fillStyle='#4a3320'; c.fillRect(x-trunkW/2,gy-trunkH,trunkW,trunkH);
+    const cy=gy-trunkH-size*0.32, rad=size*(0.5);
+    const canopyCol=mix('#4E8D5B','#7d7a34',heat); // greens dry to yellow with heat
+    c.fillStyle=canopyCol; c.globalAlpha=alive;
+    c.beginPath(); c.arc(x,cy,rad,0,7); c.arc(x-rad*0.6,cy+rad*0.25,rad*0.7,0,7); c.arc(x+rad*0.6,cy+rad*0.25,rad*0.7,0,7); c.fill();
+    c.globalAlpha=1;
+  }
+  function cloud(c,x,y,r,a){c.globalAlpha=a;c.beginPath();
+    c.arc(x,y,r*18,0,7);c.arc(x+r*22,y+4,r*14,0,7);c.arc(x-r*20,y+5,r*13,0,7);c.fill();c.globalAlpha=1;}
+  function arrow(c,x1,y1,x2,y2,hw){ // downward infiltration arrow, fillStyle already set
+    c.fillRect(x1-1*DPR,y1,2*DPR,y2-y1-hw);
+    c.beginPath();c.moveTo(x2,y2);c.lineTo(x2-hw,y2-hw*1.6);c.lineTo(x2+hw,y2-hw*1.6);c.closePath();c.fill();}
+  function mix(a,b,t){t=Math.max(0,Math.min(1,t));
+    const pa=hx(a),pb=hx(b);
+    return `rgb(${Math.round(lerp(pa[0],pb[0],t))},${Math.round(lerp(pa[1],pb[1],t))},${Math.round(lerp(pa[2],pb[2],t))})`;}
+  function hx(h){h=h.replace('#','');return [parseInt(h.substr(0,2),16),parseInt(h.substr(2,2),16),parseInt(h.substr(4,2),16)];}
+
+  /* scroll -> target progress across the .story block */
+  function onScroll(){
+    const r=story.getBoundingClientRect();
+    const total=r.height-innerHeight;
+    target=total>0?clamp((-r.top)/total,0,1):0;
+    if(reduceMotion){prog=target;draw();}
+  }
+  addEventListener('scroll',onScroll,{passive:true});
+  addEventListener('resize',onScroll);
+  onScroll();
+  if(!reduceMotion)draw(); else {updateStep();draw();}
+})();
+
+/* =========================================================
+   COMPARE SLIDER — shaded vs bare street (static canvases)
+   ========================================================= */
+(function(){
+  const stage=document.getElementById('cmpStage');
+  const shade=document.getElementById('cmpShade'), bare=document.getElementById('cmpBare');
+  const handle=document.getElementById('cmpHandle');
+  const sc=shade.getContext('2d'), bc=bare.getContext('2d');
+  let W,H,DPR=Math.min(devicePixelRatio||1,2);
+  function size(){[shade,bare].forEach(cv=>{cv.width=stage.clientWidth*DPR;cv.height=stage.clientHeight*DPR;});
+    W=shade.width;H=shade.height;render();}
+  function street(c,shaded){
+    c.clearRect(0,0,W,H);
+    const ground=H*0.66;
+    // sky
+    const sky=c.createLinearGradient(0,0,0,ground);
+    if(shaded){sky.addColorStop(0,'#4a6b83');sky.addColorStop(1,'#9dbccd');}
+    else{sky.addColorStop(0,'#8a5a34');sky.addColorStop(1,'#e0a35a');}
+    c.fillStyle=sky;c.fillRect(0,0,W,ground);
+    if(!shaded){const sx=W*0.72,sy=H*0.2,r=H*0.5;const sg=c.createRadialGradient(sx,sy,0,sx,sy,r);
+      sg.addColorStop(0,'rgba(255,220,150,.9)');sg.addColorStop(1,'rgba(255,200,120,0)');c.fillStyle=sg;c.fillRect(0,0,W,H);
+      c.fillStyle='rgba(255,235,180,.95)';c.beginPath();c.arc(sx,sy,H*0.12,0,7);c.fill();}
+    // asphalt
+    const ag=c.createLinearGradient(0,ground,0,H);
+    ag.addColorStop(0,shaded?'#3a4048':'#57474a');ag.addColorStop(1,'#23282e');
+    c.fillStyle=ag;c.fillRect(0,ground,W,H-ground);
+    c.fillStyle='rgba(224,164,59,.55)';
+    for(let dx=20*DPR;dx<W;dx+=54*DPR)c.fillRect(dx,ground+ (H-ground)*0.45,26*DPR,3*DPR);
+    // buildings
+    c.fillStyle=shaded?'#242c34':'#3a2c28';
+    for(let i=0;i<5;i++){const bw=W*0.12,bx=W*0.02+i*W*0.16,bh=H*(0.22+ (i%2)*0.1);c.fillRect(bx,ground-bh,bw,bh);
+      c.fillStyle='rgba(224,164,59,.4)';for(let wy=ground-bh+8*DPR;wy<ground-8*DPR;wy+=14*DPR)for(let wx=bx+5*DPR;wx<bx+bw-6*DPR;wx+=12*DPR)if(((wx+wy)|0)%3===0)c.fillRect(wx,wy,4*DPR,5*DPR);
+      c.fillStyle=shaded?'#242c34':'#3a2c28';}
+    // trees (only shaded) + shadows
+    function tree(x){const gy=ground,size=H*0.30;
+      c.fillStyle='#4a3320';c.fillRect(x-size*0.05,gy-size*0.5,size*0.1,size*0.5);
+      c.fillStyle='#4E8D5B';const cy=gy-size*0.62,r=size*0.34;
+      c.beginPath();c.arc(x,cy,r,0,7);c.arc(x-r*0.6,cy+r*0.3,r*0.7,0,7);c.arc(x+r*0.6,cy+r*0.3,r*0.7,0,7);c.fill();
+      // cast shadow
+      c.fillStyle='rgba(20,40,25,.32)';c.beginPath();c.ellipse(x+size*0.1,gy+6*DPR,r*1.1,H*0.02,0,0,7);c.fill();}
+    if(shaded){[W*0.2,W*0.45,W*0.7,W*0.92].forEach(tree);
+      // cool shade band on asphalt
+      c.fillStyle='rgba(40,70,45,.22)';c.fillRect(0,ground,W,H-ground);}
+    else{// heat haze
+      c.save();c.globalAlpha=.4;c.strokeStyle='#E08B4E';c.lineWidth=1.4*DPR;
+      for(let hx=30*DPR;hx<W;hx+=60*DPR){c.beginPath();for(let hy=ground-4*DPR;hy>ground-H*0.2;hy-=6*DPR){c.lineTo(hx+Math.sin(hy*0.06+hx)*4*DPR,hy);}c.stroke();}c.restore();}
+    // temperature badge
+    c.font=`700 ${16*DPR}px Archivo,sans-serif`;
+    c.fillStyle=shaded?'#77B583':'#E08B4E';
+    c.textAlign=shaded?'left':'right';
+    c.fillText(shaded?'≈ superfície mais fria':'≈ superfície mais quente', shaded?14*DPR:W-14*DPR, H-16*DPR);
+  }
+  function render(){street(sc,true);street(bc,false);}
+  size(); addEventListener('resize',size);
+
+  // slider drag
+  let pos=0.5;
+  function set(px){const r=stage.getBoundingClientRect();pos=Math.max(0.03,Math.min(0.97,(px-r.left)/r.width));
+    handle.style.left=(pos*100)+'%';bare.style.clipPath=`inset(0 0 0 ${pos*100}%)`;}
+  set((stage.getBoundingClientRect().left)+stage.clientWidth*0.5);
+  let drag=false;
+  const start=e=>{drag=true;e.preventDefault();};
+  const move=e=>{if(!drag)return;const x=e.touches?e.touches[0].clientX:e.clientX;set(x);};
+  const end=()=>drag=false;
+  handle.addEventListener('mousedown',start);handle.addEventListener('touchstart',start,{passive:false});
+  addEventListener('mousemove',move);addEventListener('touchmove',move,{passive:false});
+  addEventListener('mouseup',end);addEventListener('touchend',end);
+  stage.addEventListener('click',e=>set(e.clientX));
+})();
+
+</script>
+</body>
+</html>
